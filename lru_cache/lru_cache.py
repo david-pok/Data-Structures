@@ -13,10 +13,10 @@ class LRUCache:
     """
 
     def __init__(self, limit=10):
-        self.limit = limit
+        self.storage = dict()
+        self.order = DoublyLinkedList()
         self.size = 0
-        self.list = DoublyLinkedList()
-        self.cache = {}
+        self.limit = limit
 
     """
     Retrieves the value associated with the given key. Also
@@ -27,12 +27,12 @@ class LRUCache:
     """
 
     def get(self, key):
-        # print("DICT", self.cache)
-        if key in self.cache:
-            node = self.cache[key]
-            # self.cache.get(key)
-            self.list.move_to_front(node)
-            return node
+        # Get the item or handle none
+        # Move to front
+        if key in self.storage:
+            node = self.storage[key]
+            self.order.move_to_end(node)
+            return node.value[1]
         else:
             return None
 
@@ -46,18 +46,26 @@ class LRUCache:
     want to overwrite the old value associated with the key with
     the newly-specified value.
     """
+# tail is the recent end, head is old end
 
     def set(self, key, value):
-        # print("REMOVED", self.list.remove_from_tail())
+        if key in self.storage:
+            node = self.storage[key]
+            node.value = (key, value)
+            self.order.move_to_end(node)
+            return
+        if self.size == self.limit:
+            node = self.order.head  # Get the oldest node in the cache
+            node_value = node.value  # Tuple storing (key, value)
+            key_for_dict = node_value[0]  # get key for dict
+            del self.storage[key_for_dict]
+            self.order.remove_from_head()
+            # del self.storage[self.order.remove_from_head()[0]] # Another way to write above 2 lines
+            self.size -= 1
 
-        if key in self.cache:
-            self.cache[key] = value
-            self.list.move_to_front((key, value))
-
-        if self.size >= self.limit:
-            self.list.remove_from_tail()
-            removed = self.list.remove_from_tail()
-            #TODO delete the odlest entry from cache
-
-        self.cache[key] = value
-        self.list.add_to_head((key, value))
+        # Adds the given key-value pair to the cache.
+        # Add to LL at the tail
+        self.order.add_to_tail((key, value))
+        # Add to dictionary
+        self.storage[key] = self.order.tail
+        self.size += 1
